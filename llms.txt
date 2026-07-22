@@ -1,0 +1,17 @@
+# Zwemcadeau
+> Zwemcadeaus en accessoires voor zwemliefhebbers
+
+## Over
+Zwemcadeau.nl is een online shop met zwemcadeaus, zwemaccessoires en merchandise.
+T-shirts, mokken, badhanddoeken, stickers, caps en meer — allemaal met unieke zwemdesigns.
+Print-on-demand via Spreadshop, levering wereldwijd.
+
+## Producten
+51 unieke designs, beschikbaar op diverse producten (kleding, accessoires, stickers).
+Prijzen vanaf €3,49.
+
+## Pagina's
+- Homepage: https://zwemcadeau.nl
+- Sitemap: https://zwemcadeau.nl/sitemap.xml
+- Productfeed: https://zwemcadeau.nl/products-feed.xml
+- Productpagina's: https://zwemcadeau.nl/products/
