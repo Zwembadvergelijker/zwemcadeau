@@ -56,7 +56,45 @@ def get_text(el, tag, default=""):
 def esc(s):
     return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
-# 4. Genereer feed (1 item per uniek design)
+# 4. Verzamel alle varianten per design (net als generate_products.py)
+from collections import defaultdict
+design_variants = defaultdict(list)
+
+for item in root.findall(".//item"):
+    title_el = item.find("g:title", ns)
+    if title_el is None:
+        continue
+    title = title_el.text
+    design = title.rsplit(" - ", 1)[0].strip()
+
+    iid = esc(get_text(item, "id"))
+    igid = esc(get_text(item, "item_group_id"))
+    desc = esc(get_text(item, "description"))
+    img = esc(get_text(item, "image_link"))
+    price_str = get_text(item, "price")
+    price_num = float(price_str.replace(" EUR", "").replace(",", "."))
+    avail = get_text(item, "availability").replace(" ", "_")
+    cond = get_text(item, "condition", "new")
+    brand = esc(get_text(item, "brand", "SPREAD"))
+    gpc = get_text(item, "google_product_category")
+    idex = get_text(item, "identifier_exists", "false")
+
+    design_variants[design].append({
+        "id": iid,
+        "item_group_id": igid,
+        "title": title,
+        "description": desc,
+        "image": img,
+        "price_str": price_str,
+        "price_num": price_num,
+        "availability": avail,
+        "condition": cond,
+        "brand": brand,
+        "google_product_category": gpc,
+        "identifier_exists": idex,
+    })
+
+# 5. Genereer feed — goedkoopste variant per design (match met productpagina)
 today = datetime.date.today().isoformat()
 lines = []
 lines.append('<?xml version="1.0" encoding="UTF-8"?>')
@@ -66,48 +104,29 @@ lines.append("<title>Zwemcadeau</title>")
 lines.append("<link>https://zwemcadeau.nl</link>")
 lines.append("<description>Zwemcadeau producten</description>")
 
-seen = set()
 feed_items = 0
 
-for item in root.findall(".//item"):
-    title_el = item.find("g:title", ns)
-    if title_el is None:
-        continue
-    title = title_el.text
-    design = title.rsplit(" - ", 1)[0].strip()
+for design, variants in sorted(design_variants.items()):
+    best = min(variants, key=lambda v: v["price_num"])
     slug = design_slugs.get(design, "product")
-    if slug in seen:
-        continue
-    seen.add(slug)
     feed_items += 1
 
-    iid = esc(get_text(item, "id"))
-    igid = esc(get_text(item, "item_group_id"))
-    desc = esc(get_text(item, "description"))
-    img = esc(get_text(item, "image_link"))
-    price = esc(get_text(item, "price"))
-    avail = get_text(item, "availability").replace(" ", "_")  # Fix: "in stock" → "in_stock"
-    cond = get_text(item, "condition", "new")
-    brand = esc(get_text(item, "brand", "SPREAD"))
-    gpc = get_text(item, "google_product_category")
-    idex = get_text(item, "identifier_exists", "false")
-
     lines.append("<item>")
-    lines.append(f"<g:id>{iid}</g:id>")
-    if igid:
-        lines.append(f"<g:item_group_id>{igid}</g:item_group_id>")
-    lines.append(f"<g:title>{esc(title)}</g:title>")
-    lines.append(f"<g:description>{desc}</g:description>")
+    lines.append(f"<g:id>{best['id']}</g:id>")
+    if best['item_group_id']:
+        lines.append(f"<g:item_group_id>{best['item_group_id']}</g:item_group_id>")
+    lines.append(f"<g:title>{esc(best['title'])}</g:title>")
+    lines.append(f"<g:description>{best['description']}</g:description>")
     lines.append(f"<g:link>{BASE_URL}/products/{slug}.html</g:link>")
-    lines.append(f"<g:image_link>{img}</g:image_link>")
-    lines.append(f"<g:price>{price}</g:price>")
-    lines.append(f"<g:availability>{avail}</g:availability>")
-    lines.append(f"<g:condition>{cond}</g:condition>")
-    if brand:
-        lines.append(f"<g:brand>{brand}</g:brand>")
-    if gpc:
-        lines.append(f"<g:google_product_category>{gpc}</g:google_product_category>")
-    lines.append(f"<g:identifier_exists>{idex}</g:identifier_exists>")
+    lines.append(f"<g:image_link>{best['image']}</g:image_link>")
+    lines.append(f"<g:price>{best['price_str']}</g:price>")
+    lines.append(f"<g:availability>{best['availability']}</g:availability>")
+    lines.append(f"<g:condition>{best['condition']}</g:condition>")
+    if best['brand']:
+        lines.append(f"<g:brand>{best['brand']}</g:brand>")
+    if best['google_product_category']:
+        lines.append(f"<g:google_product_category>{best['google_product_category']}</g:google_product_category>")
+    lines.append(f"<g:identifier_exists>{best['identifier_exists']}</g:identifier_exists>")
     lines.append("</item>")
 
 lines.append("</channel>")
